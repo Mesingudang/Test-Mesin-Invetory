@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.token.email == 'mesingudang8@gmail.com';
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // App Users Management
+    match /appUsers/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isSuperAdmin());
+      allow create: if isSignedIn() && request.auth.uid == uid && 
+                    request.resource.data.role == 'staff' &&
+                    request.resource.data.email == request.auth.token.email;
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin();
+    }
+
+    // Machine Types: Public read, Admin write
+    match /machineTypes/{typeId} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+
+    // Machines
+    match /machines/{machineId} {
+      function isValidMachine(data) {
+        return data.keys().hasAll(['serialNumber', 'typeId', 'typeName', 'color', 'status', 'createdAt', 'updatedAt']) &&
+               data.serialNumber is string && data.serialNumber.size() > 0 && data.serialNumber.size() <= 64 &&
+               data.typeId is string &&
+               data.typeName is string &&
+               data.color is string &&
+               data.status in ['available', 'sold'] &&
+               data.createdAt == request.time &&
+               data.updatedAt == request.time;
+      }
+
+      allow read: if isSignedIn();
+      
+      allow write: if isSuperAdmin();
+
+      allow create: if isSignedIn() && isValidMachine(request.resource.data);
+      
+      allow update: if isSignedIn() && 
+                    request.resource.data.updatedAt == request.time &&
+                    request.resource.data.createdAt == resource.data.createdAt &&
+                    request.resource.data.serialNumber == resource.data.serialNumber &&
+                    (
+                      // Action: Sale
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'customerName', 'updatedAt']) &&
+                       request.resource.data.status == 'sold') ||
+                      // Action: Edit info
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['typeId', 'typeName', 'color', 'updatedAt']))
+                    );
+    }
+
+    // Spareparts
+    match /spareparts/{partId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // Inventory Logs: Read by anyone, Write only via batch (create only)
+    match /inventoryLogs/{logId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && 
+                    request.resource.data.timestamp == request.time &&
+                    request.resource.data.userEmail == request.auth.token.email;
+    }
+  }
+}

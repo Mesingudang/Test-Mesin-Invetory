@@ -1,0 +1,98 @@
+{
+  "entities": {
+    "MachineType": {
+      "title": "Machine Type",
+      "description": "Definition of a machine model",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "colors": { "type": "array", "items": { "type": "string" } },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["name", "colors"]
+    },
+    "Machine": {
+      "title": "Machine",
+      "description": "An individual machine unit with a serial number",
+      "type": "object",
+      "properties": {
+        "serialNumber": { "type": "string" },
+        "typeId": { "type": "string" },
+        "typeName": { "type": "string" },
+        "color": { "type": "string" },
+        "warehouse": { "type": "string", "enum": ["Ngemplak", "Gresik", "Lamongan", "Jakarta"] },
+        "status": { "type": "string", "enum": ["available", "sold", "hold"] },
+        "holdReason": { "type": "string", "enum": ["cannibalized", "damaged", "other"] },
+        "cannibalizedParts": { "type": "array", "items": { "type": "string" } },
+        "customerName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["serialNumber", "typeId", "color", "status"]
+    },
+    "Sparepart": {
+      "title": "Sparepart",
+      "description": "Inventory for individual parts",
+      "type": "object",
+      "properties": {
+        "partNumber": { "type": "string" },
+        "name": { "type": "string" },
+        "warehouse": { "type": "string", "enum": ["Ngemplak", "Gresik", "Lamongan", "Jakarta"] },
+        "machineCompatibility": { "type": "array", "items": { "type": "string" } },
+        "stock": { "type": "number" },
+        "unit": { "type": "string" }
+      },
+      "required": ["partNumber", "name", "stock"]
+    },
+    "InventoryLog": {
+      "title": "Inventory Log",
+      "description": "Audit trail for machine changes",
+      "type": "object",
+      "properties": {
+        "machineId": { "type": "string" },
+        "serialNumber": { "type": "string" },
+        "action": { "type": "string" },
+        "previousData": { "type": "object" },
+        "newData": { "type": "object" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "userEmail": { "type": "string" }
+      },
+      "required": ["machineId", "action", "timestamp", "userEmail"]
+    },
+    "AppUser": {
+      "title": "Application User",
+      "description": "Permissions for users",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "staff"] },
+        "permissions": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["email", "permissions"]
+    }
+  },
+  "firestore": {
+    "machineTypes": {
+      "schema": "MachineType",
+      "description": "List of machine types available"
+    },
+    "machines": {
+      "schema": "Machine",
+      "description": "Individual machine records"
+    },
+    "inventoryLogs": {
+      "schema": "InventoryLog",
+      "description": "History of all changes"
+    },
+    "spareparts": {
+      "schema": "Sparepart",
+      "description": "Storage for spareparts components"
+    },
+    "appUsers": {
+      "schema": "AppUser",
+      "description": "User permission settings"
+    }
+  }
+}
